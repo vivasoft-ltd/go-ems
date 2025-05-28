@@ -60,3 +60,15 @@ func RefreshTokenNotFound() Data {
 func EventNotFound() Data {
 	return NewMessage().Set("message", "Event not found").Done()
 }
+
+func UserCreatedSuccessfully() Data {
+	return NewMessage().Set("message", "User created successfully").Done()
+}
+
+func UserAlreadyExists() Data {
+	return NewMessage().Set("message", "User already exists").Done()
+}
+
+func UserUnauthorized() Data {
+	return NewMessage().Set("message", "User unauthorized").Done()
+}

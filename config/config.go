@@ -28,11 +28,17 @@ type DbConfig struct {
 }
 
 type RedisConfig struct {
-	Host            string
-	Port            string
-	Pass            string
-	Db              int
-	MandatoryPrefix string
+	Host               string
+	Port               string
+	Pass               string
+	Db                 int
+	MandatoryPrefix    string
+	AccessUuidPrefix   string
+	RefreshUuidPrefix  string
+	UserPrefix         string
+	PermissionPrefix   string
+	UserCacheTTL       time.Duration
+	PermissionCacheTTL time.Duration
 }
 
 type AsynqConfig struct {
@@ -51,12 +57,20 @@ type LoggerConfig struct {
 	FilePath string
 }
 
+type JwtConfig struct {
+	AccessTokenSecret  string
+	RefreshTokenSecret string
+	AccessTokenExpiry  time.Duration
+	RefreshTokenExpiry time.Duration
+}
+
 type Config struct {
 	App    *AppConfig
 	DB     *DbConfig
 	Redis  *RedisConfig
 	Asynq  *AsynqConfig
 	Logger *LoggerConfig
+	Jwt    *JwtConfig
 }
 
 var config Config
@@ -75,6 +89,10 @@ func Db() *DbConfig {
 
 func Redis() *RedisConfig {
 	return config.Redis
+}
+
+func Jwt() *JwtConfig {
+	return config.Jwt
 }
 
 func Asynq() *AsynqConfig {
