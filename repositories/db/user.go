@@ -78,3 +78,24 @@ func (repo *Repository) DeleteUser(id int) error {
 	}
 	return nil
 }
+func (repo *Repository) ReadUsersByIDs(ids []int) ([]models.User, error) {
+	var users []models.User
+	if err := repo.client.Model(&models.User{}).Where("id IN (?)", ids).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+func (repo *Repository) ListAttendees(filter *types.AttendeeFilter) ([]types.Attendee, error) {
+	var attendees []types.Attendee
+	query := repo.client.Model(&models.User{})
+	if filter != nil {
+		if filter.RoleID != nil {
+			query = query.Where("role_id = ?", filter.RoleID)
+		}
+	}
+
+	if err := query.Find(&attendees).Error; err != nil {
+		return nil, err
+	}
+	return attendees, nil
+}

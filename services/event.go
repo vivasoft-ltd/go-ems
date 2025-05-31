@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"github.com/vivasoft-ltd/go-ems/consts"
 
 	"github.com/vivasoft-ltd/go-ems/domain"
 	"github.com/vivasoft-ltd/go-ems/models"
@@ -11,16 +12,25 @@ import (
 
 type EventServiceImpl struct {
 	eventRepo domain.EventRepository
+	userRepo  domain.UserRepository
 }
 
-func NewEventServiceImpl(eventRepo domain.EventRepository) *EventServiceImpl {
+func NewEventServiceImpl(eventRepo domain.EventRepository, userRepo domain.UserRepository) *EventServiceImpl {
 	return &EventServiceImpl{
 		eventRepo: eventRepo,
+		userRepo:  userRepo,
 	}
 }
 
 func (svc *EventServiceImpl) CreateEvent(eventReq *types.CreateEventRequest) (*types.CreateEventResponse, error) {
 	event := eventReq.ToEvent()
+	if !eventReq.IsPublic {
+		users, err := svc.userRepo.ReadUsersByIDs(eventReq.Attendees)
+		if err != nil {
+			return nil, err
+		}
+		event.Attendees = users
+	}
 	createdEvent, err := svc.eventRepo.CreateEvent(event)
 	if err != nil {
 		return nil, err
@@ -32,9 +42,10 @@ func (svc *EventServiceImpl) CreateEvent(eventReq *types.CreateEventRequest) (*t
 	}, nil
 }
 
-func (svc *EventServiceImpl) ListEvents(req types.ListEventRequest) (*types.PaginatedEventResponse, error) {
+func (svc *EventServiceImpl) ListEvents(req types.ListEventRequest, user *types.CurrentUser) (*types.PaginatedEventResponse, error) {
 	offset := (req.Page - 1) * req.Limit
-	events, count, err := svc.eventRepo.ListEvents(req.Limit, offset)
+	filter := svc.getEventFilter(user)
+	events, count, err := svc.eventRepo.ListEvents(filter, req.Limit, offset)
 	if errors.Is(err, errutil.ErrRecordNotFound) {
 		return &types.PaginatedEventResponse{}, nil
 	}
@@ -48,6 +59,25 @@ func (svc *EventServiceImpl) ListEvents(req types.ListEventRequest) (*types.Pagi
 		Events: events,
 	}
 	return response, nil
+}
+func (svc *EventServiceImpl) getEventFilter(user *types.CurrentUser) *types.EventFilter {
+	filter := &types.EventFilter{}
+	if user == nil {
+		t := true
+		filter.IsPublic = &t
+		return filter
+	}
+	if user.HasPermission(consts.PermissionFetchAllEvent) {
+		return filter
+	}
+	if user.HasPermission(consts.PermissionFetchOwnEvent) {
+		filter.CreatedBy = &user.ID
+	}
+	if user.HasPermission(consts.PermissionFetchInvitedEvent) {
+		filter.Attendee = &user.ID
+	}
+	return filter
+
 }
 
 func (svc *EventServiceImpl) ReadEventByID(id int) (*models.Event, error) {
@@ -86,4 +116,46 @@ func (svc *EventServiceImpl) DeleteEvent(id int) (*types.DeleteEventResponse, er
 	return &types.DeleteEventResponse{
 		Message: "Event deleted",
 	}, nil
+}
+func (svc *EventServiceImpl) RsvpEvent(req types.RsvpRequest) error {
+	event, err := svc.eventRepo.ReadEventByID(req.EventID)
+	if err != nil {
+		return err
+	}
+	if event == nil {
+		return errutil.ErrRecordNotFound
+	}
+	if !event.IsPublic {
+		invitation, err := svc.eventRepo.ReadInvitationByEventAndUser(req.EventID, req.UserID)
+		if err != nil {
+			return err
+		}
+		if invitation == nil {
+			return errutil.ErrRecordNotFound
+		}
+		invitation.StatusID = req.StatusID
+		if err := svc.eventRepo.UpsertInvitation(invitation); err != nil {
+			return err
+		}
+		return nil
+
+	}
+	count, err := svc.eventRepo.GetEventAttendeesCount(req.EventID)
+	if err != nil {
+		return err
+	}
+	if count >= event.AttendeeLimit {
+		return errutil.ErrEventFull
+	}
+
+	newInvitation := models.EventAttendee{
+		EventID:  req.EventID,
+		UserID:   req.UserID,
+		StatusID: req.StatusID,
+	}
+
+	if err := svc.eventRepo.UpsertInvitation(&newInvitation); err != nil {
+		return err
+	}
+	return nil
 }

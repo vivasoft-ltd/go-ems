@@ -173,3 +173,14 @@ func (ctrl *UserController) ListUsers(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, resp)
 }
+func (ctrl *UserController) ListAttendees(c echo.Context) error {
+	user, err := middlewares.CurrentUserFromCtx(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, msgutil.UserUnauthorized())
+	}
+	resp, err := ctrl.userSvc.ListAttendees(user)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, msgutil.SomethingWentWrongMsg())
+	}
+	return c.JSON(http.StatusOK, resp)
+}

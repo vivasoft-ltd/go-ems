@@ -244,3 +244,11 @@ func (svc *UserServiceImpl) ListUsers(req types.ListUserReq) (*types.PaginatedUs
 
 	return resp, nil
 }
+func (svc *UserServiceImpl) ListAttendees(user *types.CurrentUser) ([]types.Attendee, error) {
+	filter := types.AttendeeFilter{}
+	if !user.HasPermission(consts.PermissionFetchAllUserAsAttendee) {
+		roleAttendee := consts.RoleIdAttendee
+		filter.RoleID = &roleAttendee
+	}
+	return svc.repo.ListAttendees(&filter)
+}

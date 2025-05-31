@@ -12,6 +12,7 @@ type (
 		RoleID    int       `json:"-"`
 		CreatedAt time.Time `json:"-"`
 		UpdatedAt time.Time `json:"-"`
+		Events    []Event   `json:"events,omitempty" gorm:"many2many:event_attendees;"`
 	}
 
 	RolePermission struct {

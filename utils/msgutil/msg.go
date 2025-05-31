@@ -88,3 +88,9 @@ func UserUpdatedSuccessfully() Data {
 func UserDeletedSuccessfully() Data {
 	return NewMessage().Set("message", "User deleted successfully").Done()
 }
+func RsvpSuccessfully() Data {
+	return NewMessage().Set("message", "RSVP successfully").Done()
+}
+func EventFull() Data {
+	return NewMessage().Set("message", "Event is full").Done()
+}

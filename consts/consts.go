@@ -18,11 +18,15 @@ const (
 	PermissionUserList   = "user.list"   // Permission to list all users
 	PermissionUserDelete = "user.delete" // Permission to delete a user
 
-	PermissionEventCreate = "event.create" // Permission to create a new event
-	PermissionEventUpdate = "event.update" // Permission to update an existing event
-	PermissionEventFetch  = "event.fetch"  // Permission to fetch a specific event
-	PermissionEventList   = "event.list"   // Permission to list events
-	PermissionEventDelete = "event.delete" // Permission to delete an event
+	PermissionEventCreate            = "event.create" // Permission to create a new event
+	PermissionEventUpdate            = "event.update" // Permission to update an existing event
+	PermissionEventFetch             = "event.fetch"  // Permission to fetch a specific event
+	PermissionEventList              = "event.list"   // Permission to list events
+	PermissionEventDelete            = "event.delete" // Permission to delete an event
+	PermissionFetchAllUserAsAttendee = "user.fetchAllUserAsAttendee"
+	PermissionFetchAllEvent          = "event.fetchAllEvent"
+	PermissionFetchOwnEvent          = "event.fetchOwnEvent"
+	PermissionFetchInvitedEvent      = "event.fetchInvitedEvent"
 )
 
 var RoleMap = map[int]string{

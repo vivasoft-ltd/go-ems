@@ -9,12 +9,15 @@ import (
 
 type (
 	CreateEventRequest struct {
-		Title       string  `json:"title"`
-		Description *string `json:"description"`
-		Location    *string `json:"location"`
-		StartTime   *string `json:"start_time"`
-		EndTime     *string `json:"end_time"`
-		CreatedBy   int     `json:"created_by"`
+		Title         string  `json:"title"`
+		Description   *string `json:"description"`
+		Location      *string `json:"location"`
+		StartTime     *string `json:"start_time"`
+		IsPublic      bool    `json:"is_public"`
+		AttendeeLimit int     `json:"attendee_limit"`
+		EndTime       *string `json:"end_time"`
+		CreatedBy     int     `json:"created_by"`
+		Attendees     []int   `json:"attendees"`
 	}
 
 	UpdateEventRequest struct {
@@ -45,6 +48,16 @@ type (
 		Limit  int             `json:"limit"`
 		Events []*models.Event `json:"events"`
 	}
+	RsvpRequest struct {
+		EventID  int `param:"event_id"`
+		UserID   int
+		StatusID int `json:"status_id"`
+	}
+	EventFilter struct {
+		CreatedBy *int
+		Attendee  *int
+		IsPublic  *bool
+	}
 )
 
 func (cereq *CreateEventRequest) Validate() error {
@@ -54,6 +67,7 @@ func (cereq *CreateEventRequest) Validate() error {
 		v.Field(&cereq.Location, v.When(cereq.Location != nil, v.Length(0, 255))),
 		v.Field(&cereq.StartTime, v.When(cereq.StartTime != nil, v.Date(time.RFC3339))),
 		v.Field(&cereq.EndTime, v.When(cereq.EndTime != nil, v.Date(time.RFC3339))),
+		v.Field(&cereq.Attendees, v.When(!cereq.IsPublic, v.Required, v.Length(1, 0))),
 	)
 }
 
@@ -66,10 +80,12 @@ func (uereq *UpdateEventRequest) Validate() error {
 
 func (cereq *CreateEventRequest) ToEvent() *models.Event {
 	event := &models.Event{
-		Title:       cereq.Title,
-		Description: cereq.Description,
-		Location:    cereq.Location,
-		CreatedBy:   cereq.CreatedBy,
+		Title:         cereq.Title,
+		Description:   cereq.Description,
+		Location:      cereq.Location,
+		CreatedBy:     cereq.CreatedBy,
+		IsPublic:      cereq.IsPublic,
+		AttendeeLimit: cereq.AttendeeLimit,
 	}
 	if cereq.StartTime != nil {
 		event.StartTime, _ = parseTime(*cereq.StartTime, time.RFC3339)
@@ -95,4 +111,11 @@ func (uereq *UpdateEventRequest) ToEvent() *models.Event {
 		event.EndTime, _ = parseTime(*uereq.EndTime, time.RFC3339)
 	}
 	return event
+}
+
+func (rr *RsvpRequest) Validate() error {
+	return v.ValidateStruct(rr,
+		v.Field(&rr.EventID, v.Required),
+		v.Field(&rr.StatusID, v.Required),
+	)
 }

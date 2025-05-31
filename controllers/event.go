@@ -55,6 +55,11 @@ func (ctrl *EventController) CreateEvent(c echo.Context) error {
 
 func (ctrl *EventController) ListEvents(c echo.Context) error {
 	req := types.ListEventRequest{}
+	user, err := middlewares.CurrentUserFromCtx(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, msgutil.UserUnauthorized())
+	}
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, msgutil.InvalidRequestMsg())
 	}
@@ -64,7 +69,7 @@ func (ctrl *EventController) ListEvents(c echo.Context) error {
 	if req.Page <= 0 {
 		req.Page = consts.DefaultPage
 	}
-	events, err := ctrl.eventSvc.ListEvents(req)
+	events, err := ctrl.eventSvc.ListEvents(req, user)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, msgutil.SomethingWentWrongMsg())
 	}
@@ -140,4 +145,49 @@ func (ctrl *EventController) DeleteEvent(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, msgutil.SomethingWentWrongMsg())
 	}
 	return c.JSON(http.StatusNoContent, resp)
+}
+func (ctrl *EventController) Rsvp(c echo.Context) error {
+	var req types.RsvpRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, msgutil.InvalidRequestMsg())
+	}
+	if err := req.Validate(); err != nil {
+		logger.Error("validation error: %v", err)
+		return c.JSON(http.StatusBadRequest, &types.ValidationError{
+			Error: err,
+		})
+	}
+	user, err := middlewares.CurrentUserFromCtx(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, msgutil.UserUnauthorized())
+	}
+	req.UserID = user.ID
+	err = ctrl.eventSvc.RsvpEvent(req)
+	if errors.Is(err, errutil.ErrRecordNotFound) {
+		return c.JSON(http.StatusNotFound, msgutil.EventNotFound())
+	}
+	if errors.Is(err, errutil.ErrEventFull) {
+		return c.JSON(http.StatusBadRequest, msgutil.EventFull())
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, msgutil.SomethingWentWrongMsg())
+	}
+	return c.JSON(http.StatusOK, msgutil.RsvpSuccessfully())
+}
+func (ctrl *EventController) ListPublicEvents(c echo.Context) error {
+	req := types.ListEventRequest{}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, msgutil.InvalidRequestMsg())
+	}
+	if req.Limit <= 0 {
+		req.Limit = consts.DefaultPageSize
+	}
+	if req.Page <= 0 {
+		req.Page = consts.DefaultPage
+	}
+	events, err := ctrl.eventSvc.ListEvents(req, nil)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, msgutil.SomethingWentWrongMsg())
+	}
+	return c.JSON(http.StatusOK, events)
 }

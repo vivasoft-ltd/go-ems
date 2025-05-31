@@ -15,6 +15,7 @@ type (
 		StoreInCache(user *types.UserInfo) error
 		ListUsers(req types.ListUserReq) (*types.PaginatedUserResp, error)
 		ReadPermissionsByRole(roleID int) ([]*models.Permission, error)
+		ListAttendees(user *types.CurrentUser) ([]types.Attendee, error)
 	}
 	UserRepository interface {
 		CreateUser(user *models.User) (*models.User, error)
@@ -25,5 +26,7 @@ type (
 		ReadUserByEmail(email string) (*models.User, error)
 		UserCountByEmail(email string) (int, error)
 		ReadPermissionsByRole(roleID int) ([]*models.Permission, error)
+		ReadUsersByIDs(ids []int) ([]models.User, error)
+		ListAttendees(filter *types.AttendeeFilter) ([]types.Attendee, error)
 	}
 )
